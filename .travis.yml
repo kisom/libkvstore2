@@ -1,0 +1,7 @@
+language: c
+compiler:
+  - gcc
+before_install:
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq libcunit1-dev libcunit1 texinfo
+script: autoreconf -i && ./configure && make && make check
