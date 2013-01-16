@@ -124,6 +124,8 @@ kvstore_new(void)
         kvs = (kvstore)malloc(sizeof(struct _kvstore));
         if (NULL == kvs)
                 return NULL;
+        else
+                memset(kvs, 0x0, sizeof(struct _kvstore));
         kvs->refs = 1;
 
         kvs->sem = (sem_t *)malloc(sizeof(sem_t));
@@ -137,6 +139,9 @@ kvstore_new(void)
         if (NULL == kvs->queue) {
                 kvstore_discard(kvs);
                 return NULL;
+        } else {
+                memset(kvs->queue, 0x0, sizeof(struct _tq_kvstore_kv));
+                TAILQ_INIT(kvs->queue);
         }
 
         kvs->timeo.tv_sec = 0;
@@ -264,7 +269,6 @@ kvstore_set(kvstore kvs, char *key, char *val)
         struct _kvstore_kv      *kv;
         size_t                   klen;
         size_t                   vlen;
-        int                      match = 0;
 
         if (NULL == kvs)
                 return -1;
@@ -272,8 +276,6 @@ kvstore_set(kvstore kvs, char *key, char *val)
         TAILQ_FOREACH(kv, kvs->queue, entries) {
                 if (0 == _keymatch(kv->key, key))
                         return _kvstore_update(kvs, kv, val);
-                if (match)
-                        break;
         }
 
         kv = NULL;
@@ -331,4 +333,41 @@ _kvstore_update(kvstore kvs, struct _kvstore_kv *kv, char *val)
         kv->val_len = vlen;
         kv->val = update_val;
         return 0;
+}
+
+
+char *
+kvstore_get(kvstore kvs, char *key)
+{
+        struct _kvstore_kv      *kv;
+        int                      match = 0;
+
+        TAILQ_FOREACH(kv, kvs->queue, entries) {
+                if (_keymatch(kv->key, key)) {
+                        match = 1;
+                        break;
+                }
+        }
+
+        if (!match)
+                return NULL;
+        return kv->val;
+}
+
+
+int
+kvstore_del(kvstore kvs, char *key)
+{
+        struct _kvstore_kv      *kv;
+
+        TAILQ_FOREACH(kv, kvs->queue, entries) {
+                if (_keymatch(kv->key, key)) {
+                        free(kv->key);
+                        free(kv->val);
+                        TAILQ_REMOVE(kvs->queue, kv, entries);
+                        free(kv);
+                        return 0;
+                }
+        }
+        return -1;
 }

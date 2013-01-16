@@ -34,10 +34,12 @@ typedef enum {
 
 typedef struct _kvstore * kvstore;
 
-kvstore         kvstore_new(void);
-int             kvstore_discard(kvstore);
-int             kvstore_config(kvstore, KVSTORE_CONFIG_OPT, void *);
-int             kvstore_dup(kvstore);
-int             kvstore_set(kvstore, char *, char *);
+kvstore          kvstore_new(void);
+int              kvstore_discard(kvstore);
+int              kvstore_config(kvstore, KVSTORE_CONFIG_OPT, void *);
+int              kvstore_dup(kvstore);
+int              kvstore_set(kvstore, char *, char *);
+char            *kvstore_get(kvstore, char *);
+int              kvstore_del(kvstore, char *);
 
 #endif
