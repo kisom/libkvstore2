@@ -19,6 +19,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <errno.h>
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +62,7 @@ _lock_kvstore(kvstore kvs)
         retval = sem_trywait(kvs->sem);
         if (-1 == retval) {
                 select(0, NULL, NULL, NULL, &ts);
-                return sem_trywait(kvs->sem);
+                retval = sem_trywait(kvs->sem);
         }
         return retval;
 }
@@ -136,13 +137,37 @@ kvstore_new(void)
 int
 kvstore_discard(kvstore kvs)
 {
+        int retval;
+
         if (NULL == kvs)
                 return 0;
         if (NULL == kvs->sem) {
                 free(kvs);
                 return 0;
         }
-        while (_lock_kvstore(kvs)) ;
+        while (1) {
+                retval = _lock_kvstore(kvs) ;
+                switch (retval) {
+                case 0:
+                        retval = 1;
+                        break;
+                case -1:
+                        switch (errno) {
+                        case EINVAL:
+                                retval = 1;
+                                break;
+                        case EBADF:
+                                retval = 1;
+                                break;
+                        default:
+                                retval = 0;
+                                printf("errno: %d\n", errno);
+                                continue;
+                        }
+                }
+                if (retval)
+                        break;
+        }
         kvs->refs--;
 
         if (kvs->refs) {
@@ -150,7 +175,28 @@ kvstore_discard(kvstore kvs)
         }
 
         free(kvs->queue);
-        while (_unlock_kvstore(kvs)) ;
+        while (1) {
+                retval = _unlock_kvstore(kvs);
+                switch (retval) {
+                case 0:
+                        retval = 1;
+                        break;
+                case -1:
+                        switch (errno) {
+                        case EINVAL:
+                                retval = 1;
+                                break;
+                        case EBADF:
+                                retval = 1;
+                                break;
+                        default:
+                                retval = 0;
+                                continue;
+                        }
+                }
+                if (retval)
+                        break;
+        }
         sem_close(kvs->sem);
         free(kvs->sem);
         free(kvs);
