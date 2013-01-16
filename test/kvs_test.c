@@ -76,6 +76,36 @@ test_kvstore_many_refcounts(void)
 }
 
 
+static void
+test_kvstore_set(void)
+{
+        kvstore  kvs;
+        char     test_key[] = "hello";
+        char     test_val[] = "world";
+
+        CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
+        CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val));
+
+        CU_ASSERT(0 == kvstore_discard(kvs));
+}
+
+
+static void
+test_kvstore_update(void)
+{
+        kvstore  kvs;
+        char     test_key[] = "hello";
+        char     test_val[] = "world";
+        char     test_val2[] = "world!";
+
+        CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
+        CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val));
+        CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val2));
+
+        CU_ASSERT(0 == kvstore_discard(kvs));
+}
+
+
 /*
  * suite set up functions
  */
@@ -131,6 +161,14 @@ main(int argc, char *argv[])
 
         if (NULL == CU_add_test(kvstore_suite, "many refcounts check",
                     test_kvstore_many_refcounts))
+                destroy_test_registry();
+
+        if (NULL == CU_add_test(kvstore_suite, "kvstore set",
+                    test_kvstore_set))
+                destroy_test_registry();
+
+        if (NULL == CU_add_test(kvstore_suite, "kvstore update",
+                    test_kvstore_update))
                 destroy_test_registry();
 
         CU_basic_set_mode(CU_BRM_VERBOSE);
