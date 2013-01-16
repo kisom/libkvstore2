@@ -82,9 +82,14 @@ test_kvstore_set(void)
         kvstore  kvs;
         char     test_key[] = "hello";
         char     test_val[] = "world";
+        char    *get_val = NULL;
 
         CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
         CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val));
+
+        get_val = kvstore_get(kvs, test_key);
+        CU_ASSERT(NULL != get_val);
+        CU_ASSERT(0 == strncmp(get_val, test_val, sizeof(test_val)));
 
         CU_ASSERT(0 == kvstore_discard(kvs));
 }
@@ -97,18 +102,46 @@ test_kvstore_update(void)
         char     test_key[] = "hello";
         char     test_val[] = "world";
         char     test_val2[] = "world!";
+        char    *get_val = NULL;
 
         CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
         CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val));
+        get_val = kvstore_get(kvs, test_key);
+        CU_ASSERT(NULL != get_val);
+        CU_ASSERT(0 == strncmp(get_val, test_val, sizeof(test_val)));
+
         CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val2));
+        get_val = kvstore_get(kvs, test_key);
+        CU_ASSERT(NULL != get_val);
+        CU_ASSERT(0 == strncmp(get_val, test_val2, sizeof(test_val2)));
 
         CU_ASSERT(0 == kvstore_discard(kvs));
 }
 
 
-/*
- * suite set up functions
- */
+static void
+test_kvstore_del(void)
+{
+        kvstore  kvs;
+        char     test_key[] = "hello";
+        char     test_val[] = "world";
+        char    *get_val = NULL;
+
+        CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
+        CU_ASSERT(0 == kvstore_set(kvs, test_key, test_val));
+
+        get_val = kvstore_get(kvs, test_key);
+        CU_ASSERT(NULL != get_val);
+        CU_ASSERT(0 == strncmp(get_val, test_val, sizeof(test_val)));
+
+        CU_ASSERT(0 == kvstore_del(kvs, test_key));
+        get_val = kvstore_get(kvs, test_key);
+        CU_ASSERT(NULL == get_val);
+
+        CU_ASSERT(0 == kvstore_discard(kvs));
+}
+
+
 int
 initialise_kvstore_test()
 {
@@ -169,6 +202,10 @@ main(int argc, char *argv[])
 
         if (NULL == CU_add_test(kvstore_suite, "kvstore update",
                     test_kvstore_update))
+                destroy_test_registry();
+
+        if (NULL == CU_add_test(kvstore_suite, "kvstore delete",
+                    test_kvstore_del))
                 destroy_test_registry();
 
         CU_basic_set_mode(CU_BRM_VERBOSE);
