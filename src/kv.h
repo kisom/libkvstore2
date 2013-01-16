@@ -24,10 +24,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+extern const size_t      KVSTORE_DEFAULT_MAX_KEYLEN;
+extern const size_t      KVSTORE_DEFAULT_MAX_VALLEN;
+
+typedef enum {
+        KVSTORE_MAX_KEYLEN,
+        KVSTORE_MAX_VALLEN
+} KVSTORE_CONFIG_OPT;
+
 typedef struct _kvstore * kvstore;
 
 kvstore         kvstore_new(void);
 int             kvstore_discard(kvstore);
+int             kvstore_config(kvstore, KVSTORE_CONFIG_OPT, void *);
 int             kvstore_dup(kvstore);
+int             kvstore_set(kvstore, char *, char *);
 
 #endif
