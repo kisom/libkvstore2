@@ -39,7 +39,7 @@ test_kvstore_new(void)
         kvstore kvs;
 
         kvs = kvstore_new();
-        CU_ASSERT(NULL != kvs);
+        CU_ASSERT_FATAL(NULL != kvs);
 
         CU_ASSERT(0 == kvstore_discard(kvs));
 }
@@ -51,7 +51,7 @@ test_kvstore_refcount(void)
         kvstore kvs;
 
         kvs = kvstore_new();
-        CU_ASSERT(NULL != kvs);
+        CU_ASSERT_FATAL(NULL != kvs);
         CU_ASSERT(0 == kvstore_dup(kvs));
 
         CU_ASSERT(0 == kvstore_discard(kvs));
@@ -65,7 +65,7 @@ test_kvstore_many_refcounts(void)
         kvstore  kvs;
         size_t   i;
 
-        CU_ASSERT(NULL != (kvs = kvstore_new()));
+        CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
         for (i = 0; i < 1000000; i++)
                 CU_ASSERT(0 == kvstore_dup(kvs));
 
