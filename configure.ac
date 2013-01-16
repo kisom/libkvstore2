@@ -15,16 +15,16 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AM_PROG_CC_C_O
 
-#NO_DARWIN_MSG="
-#    ==============================================
-#    Error: darwin is not a supported platform.
-#    ==============================================
-#"
-#case $host_os in 
-#darwin*)
-#        AC_MSG_ERROR($NO_DARWIN_MSG)
-#        ;;
-#esac
+NO_DARWIN_MSG="
+    ==============================================
+    Error: darwin is not a supported platform.
+    ==============================================
+"
+case $host_os in 
+darwin*)
+        AC_MSG_ERROR($NO_DARWIN_MSG)
+        ;;
+esac
 
 NO_CUNIT_MSG="
     ==============================================
