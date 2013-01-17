@@ -33,6 +33,12 @@
 #include "kv.h"
 
 
+static const size_t      MAX_WORD_LEN = 32;
+#ifndef KVS_TEST_DICT
+#define KVS_TEST_DICT   "/usr/share/dict/words"
+#endif
+
+
 static void
 test_kvstore_new(void)
 {
@@ -142,6 +148,32 @@ test_kvstore_del(void)
 }
 
 
+static void
+test_kvstore_multikey(void)
+{
+        kvstore          kvs;
+        char             key1[] = "key1";
+        char             key2[] = "key2";
+        char             key3[] = "key3";
+        char             val1[] = "value1";
+        char             val1a[] = "ohgodwhatsthis";
+        char             val2[] = "value2";
+        char             val3[] = "value3";
+
+        CU_ASSERT_FATAL(NULL != (kvs = kvstore_new()));
+        CU_ASSERT_FATAL(0 == kvstore_set(kvs, key1, val1));
+        CU_ASSERT_FATAL(0 == kvstore_set(kvs, key2, val2));
+        CU_ASSERT_FATAL(0 == kvstore_set(kvs, key3, val3));
+        CU_ASSERT(0 == strncmp(kvstore_get(kvs, key1), val1, MAX_WORD_LEN));
+        CU_ASSERT(0 == strncmp(kvstore_get(kvs, key2), val2, MAX_WORD_LEN));
+        CU_ASSERT(0 == strncmp(kvstore_get(kvs, key3), val3, MAX_WORD_LEN));
+        CU_ASSERT(0 == kvstore_set(kvs, key1, val1a));
+        CU_ASSERT(0 == strncmp(kvstore_get(kvs, key1), val1a, MAX_WORD_LEN));
+        CU_ASSERT(3 == kvstore_len(kvs));
+        CU_ASSERT(0 == kvstore_discard(kvs));
+}
+
+
 int
 initialise_kvstore_test()
 {
@@ -206,6 +238,10 @@ main(int argc, char *argv[])
 
         if (NULL == CU_add_test(kvstore_suite, "kvstore delete",
                     test_kvstore_del))
+                destroy_test_registry();
+
+        if (NULL == CU_add_test(kvstore_suite, "multikey test",
+                    test_kvstore_multikey))
                 destroy_test_registry();
 
         CU_basic_set_mode(CU_BRM_VERBOSE);

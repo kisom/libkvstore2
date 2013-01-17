@@ -41,5 +41,6 @@ int              kvstore_dup(kvstore);
 int              kvstore_set(kvstore, char *, char *);
 char            *kvstore_get(kvstore, char *);
 int              kvstore_del(kvstore, char *);
+size_t           kvstore_len(kvstore);
 
 #endif

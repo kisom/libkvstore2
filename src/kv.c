@@ -46,16 +46,16 @@ struct _kvstore {
         struct _tq_kvstore_kv   *queue;
         sem_t                   *sem;
         size_t                   refs;
+        size_t                   keys;
         size_t                   max_keylen;
         size_t                   max_vallen;
         struct timeval           timeo;
 };
 
 
-static int      _keymatch(char *, char *);
-static int      _lock_kvstore(kvstore);
-static int      _unlock_kvstore(kvstore);
-static int      _kvstore_update(kvstore, struct _kvstore_kv *, char *);
+static int       _lock_kvstore(kvstore);
+static int       _unlock_kvstore(kvstore);
+static int       _kvstore_update(kvstore, struct _kvstore_kv *, char *);
 
 
 int
@@ -80,39 +80,6 @@ int
 _unlock_kvstore(kvstore kvs)
 {
         return sem_post(kvs->sem);
-}
-
-
-/*
- * compare two keys. neither key should be NULL! returns 1 if the
- * keys match, and 0 if they do not.
- */
-int
-_keymatch(char *key1, char *key2)
-{
-        size_t   i;
-
-        i = 0;
-        if (NULL == key1) {
-                return 0;
-        } else if (NULL == key2) {
-                return 0;
-        }
-
-        while (1) {
-                if (0x0 == key1[i]) {
-                        if (0x0 == key2[i])
-                                return 1;
-                        else
-                                return 0;
-                }
-
-                if (0x0 == key2[i])
-                        return 0;
-                if (key1[i] != key2[i])
-                        return 0;
-                i++;
-        }
 }
 
 
@@ -144,6 +111,7 @@ kvstore_new(void)
                 TAILQ_INIT(kvs->queue);
         }
 
+        kvs->keys = 0;
         kvs->timeo.tv_sec = 0;
         kvs->timeo.tv_usec = 10000;
         kvs->max_keylen = KVSTORE_DEFAULT_MAX_KEYLEN;
@@ -181,8 +149,6 @@ kvstore_discard(kvstore kvs)
                                 retval = 1;
                                 break;
                         default:
-                                retval = 0;
-                                printf("errno: %d\n", errno);
                                 continue;
                         }
                 }
@@ -217,7 +183,6 @@ kvstore_discard(kvstore kvs)
                                 retval = 1;
                                 break;
                         default:
-                                retval = 0;
                                 continue;
                         }
                 }
@@ -274,7 +239,7 @@ kvstore_set(kvstore kvs, char *key, char *val)
                 return -1;
 
         TAILQ_FOREACH(kv, kvs->queue, entries) {
-                if (0 == _keymatch(kv->key, key))
+                if (0 == strncmp(kv->key, key, kvs->max_keylen))
                         return _kvstore_update(kvs, kv, val);
         }
 
@@ -302,10 +267,13 @@ kvstore_set(kvstore kvs, char *key, char *val)
 
         kv->key_len = klen;
         kv->val_len = vlen;
+        bzero(kv->key, klen);
+        bzero(kv->val, vlen);
         strncpy(kv->key, key, klen);
         strncpy(kv->val, val, vlen);
 
         TAILQ_INSERT_HEAD(kvs->queue, kv, entries);
+        kvs->keys++;
         return 0;
 }
 
@@ -316,10 +284,6 @@ _kvstore_update(kvstore kvs, struct _kvstore_kv *kv, char *val)
         size_t   vlen;
         char    *update_val;
 
-        printf("\n");
-        printf("[-] new val: '%s'\n", val);
-        printf("[-] kv->val: '%s'\tkv->val_len: %u\n",
-                kv->val, (unsigned int)kv->val_len);
         vlen = strnlen(val, kvs->max_vallen + 1);
         if (((kvs->max_vallen + 1) == vlen) || (0 == vlen))
                 return -1;
@@ -327,6 +291,7 @@ _kvstore_update(kvstore kvs, struct _kvstore_kv *kv, char *val)
         update_val = (char *)malloc((vlen + 1) * sizeof(char));
         if (NULL == update_val)
                 return -1;
+        strncpy(update_val, val, vlen);
 
         free(kv->val);
         kv->val = NULL;
@@ -343,7 +308,7 @@ kvstore_get(kvstore kvs, char *key)
         int                      match = 0;
 
         TAILQ_FOREACH(kv, kvs->queue, entries) {
-                if (_keymatch(kv->key, key)) {
+                if (0 == strncmp(kv->key, key, kvs->max_keylen)) {
                         match = 1;
                         break;
                 }
@@ -361,13 +326,32 @@ kvstore_del(kvstore kvs, char *key)
         struct _kvstore_kv      *kv;
 
         TAILQ_FOREACH(kv, kvs->queue, entries) {
-                if (_keymatch(kv->key, key)) {
+                if (0 == strncmp(kv->key, key, kvs->max_keylen)) {
                         free(kv->key);
                         free(kv->val);
                         TAILQ_REMOVE(kvs->queue, kv, entries);
                         free(kv);
+                        kvs->keys--;
                         return 0;
                 }
         }
         return -1;
+}
+
+
+void
+kvstore_show_keys(kvstore kvs)
+{
+        struct _kvstore_kv      *kv;
+        size_t                   i = 0;
+
+        TAILQ_FOREACH(kv, kvs->queue, entries)
+            printf("key %8u: '%s'\n", (unsigned int)i++, kv->key);
+}
+
+
+size_t
+kvstore_len(kvstore kvs)
+{
+        return kvs->keys;
 }
