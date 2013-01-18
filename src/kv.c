@@ -291,6 +291,7 @@ _kvstore_update(kvstore kvs, struct _kvstore_kv *kv, char *val)
         update_val = (char *)malloc((vlen + 1) * sizeof(char));
         if (NULL == update_val)
                 return -1;
+        memset(update_val, 0x0, vlen + 1);
         strncpy(update_val, val, vlen);
 
         free(kv->val);
