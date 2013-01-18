@@ -267,8 +267,8 @@ kvstore_set(kvstore kvs, char *key, char *val)
 
         kv->key_len = klen;
         kv->val_len = vlen;
-        bzero(kv->key, klen);
-        bzero(kv->val, vlen);
+        memset(kv->key, 0x0, klen + 1);
+        memset(kv->val, 0x0, vlen + 1);
         strncpy(kv->key, key, klen);
         strncpy(kv->val, val, vlen);
 
